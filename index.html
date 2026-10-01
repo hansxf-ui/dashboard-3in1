@@ -106,6 +106,7 @@
     font-weight: 700; color: #fff; background: linear-gradient(135deg, #f43f5e, #a78bfa);
   }
   .err button:active { transform: scale(.96); }
+  .err-detail { font-size: 11px; opacity: .6; margin-top: 8px; word-break: break-word; }
   .soon {
     text-align: center; padding: 34px 18px; color: var(--muted); font-size: 14px;
     background: var(--glass); border: 1px dashed var(--glass-brd); border-radius: 18px;
@@ -257,8 +258,9 @@ function skeletonHTML(n) {
   return h;
 }
 
-function errorHTML(pesan) {
+function errorHTML(pesan, detail) {
   return '<div class="err">⚠️ ' + esc(pesan) +
+    (detail ? '<div class="err-detail">' + esc(detail) + '</div>' : '') +
     '<br><button onclick="muatUlangAktif()">🔄 Coba lagi</button></div>';
 }
 
@@ -355,7 +357,7 @@ $('#format-chips').addEventListener('click', (e) => {
   muatManga(false);
 });
 
-const MANGA_QUERY = 'query ($format: MediaFormat) { Page(perPage: 20) { media(type: MANGA, sort: UPDATED_AT_DESC, status_in: [RELEASING], format: $format) { id title { romaji english native } coverImage { large } chapters genres updatedAt siteUrl } } }';
+const MANGA_QUERY = (fmt) => 'query { Page(perPage: 20) { media(type: MANGA, sort: UPDATED_AT_DESC, status_in: [RELEASING], format: ' + fmt + ') { id title { romaji english native } coverImage { large } chapters genres updatedAt siteUrl } } }';
 
 async function muatManga(paksa) {
   const list = $('#manga-list');
@@ -366,10 +368,11 @@ async function muatManga(paksa) {
     const res = await fetchJSON('https://graphql.anilist.co', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ query: MANGA_QUERY, variables: { format: tabState.format } })
+      body: JSON.stringify({ query: MANGA_QUERY(tabState.format) })
     });
-    const items = (((res.data || {}).Page || {}).media || []).filter((m) => m.chapters);
-    if (!items.length) throw new Error('kosong');
+    if (res.errors && res.errors.length) throw new Error(res.errors[0].message);
+    const items = (((res.data || {}).Page || {}).media || []);
+    if (!items.length) throw new Error('kosong (API mengembalikan 0 hasil)');
     const labelFormat = { MANGA: 'Manga', MANHWA: 'Manhwa', MANHUA: 'Manhua' }[tabState.format] || tabState.format;
     list.innerHTML = items.map((m) => {
       const t = m.title || {};
@@ -381,14 +384,15 @@ async function muatManga(paksa) {
       return '<div class="card"><div class="ani">' +
         (img ? '<img src="' + esc(img) + '" alt="" loading="lazy">' : '') +
         '<div class="info"><div class="t"><a href="' + esc(link) + '" target="_blank" rel="noopener" style="color:var(--txt);text-decoration:none">' + esc(ttl) + '</a></div>' +
-        '<div class="ep">📖 Chapter ' + esc(m.chapters) + (gen ? ' · ' + esc(gen) : '') + '</div>' +
+        '<div class="ep">📖 Chapter ' + esc(m.chapters == null ? '—' : m.chapters) + (gen ? ' · ' + esc(gen) : '') + '</div>' +
         '<div class="manga-row"><span class="badge">' + esc(labelFormat) + '</span>' +
         '<span class="time">🕐 update ' + esc(waktuLalu(ts)) + '</span></div>' +
         '</div></div></div>';
     }).join('');
     list.dataset.loaded = '1';
   } catch (err) {
-    list.innerHTML = errorHTML('Gagal memuat data manga. Coba lagi beberapa saat — kadang servernya membatasi akses otomatis.');
+    console.error('manga', err);
+    list.innerHTML = errorHTML('Gagal memuat data manga. Coba lagi beberapa saat — kadang servernya membatasi akses otomatis.', err && err.message);
     delete list.dataset.loaded;
   }
 }
