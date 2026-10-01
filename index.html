@@ -160,6 +160,16 @@
 
   footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 34px; line-height: 1.7; }
   footer a { color: var(--acc2); text-decoration: none; }
+
+  /* ===== mode hemat HP: matikan blur kaca di layar kecil (berat di GPU HP) ===== */
+  @media (max-width: 768px) {
+    nav.tabs, .chip, .card, .err, .soon {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    nav.tabs { background: rgba(10,14,28,.94); }
+    .card { background: rgba(17,23,46,.96); }
+  }
 </style>
 </head>
 <body>
@@ -320,14 +330,34 @@ async function muatEsports(paksa) {
   return muatDota();
 }
 
+/* OpenDota kadang ngadat (rate-limit) — simpan hasil terakhir biar tab nggak kosong */
+let dotaCache = null;
+
 async function muatDota() {
   const list = $('#esports-list');
   const meta = $('#esports-meta');
   list.innerHTML = skeletonHTML(5);
   meta.textContent = 'Memuat dari OpenDota…';
 
+  let data = null;
+  for (let i = 0; i < 2 && !data; i++) {
+    try { data = await fetchJSON('https://api.opendota.com/api/proMatches'); }
+    catch (e) { await new Promise(r => setTimeout(r, 1500)); }
+  }
+  if (!data) {
+    if (dotaCache) {
+      list.innerHTML = dotaCache.html;
+      meta.textContent = dotaCache.meta + ' · (gagal refresh — data tersimpan)';
+      list.dataset.loaded = 'dota2';
+    } else {
+      meta.textContent = '';
+      list.innerHTML = errorHTML('Gagal memuat data Dota 2. Server OpenDota lagi sibuk — coba lagi.');
+      delete list.dataset.loaded;
+    }
+    return;
+  }
+
   try {
-    const data = await fetchJSON('https://api.opendota.com/api/proMatches');
     const items = data.slice(0, 12);
     meta.textContent = 'Sumber: OpenDota · ' + items.length + ' pertandingan pro terbaru';
     list.innerHTML = items.map((m) => {
@@ -344,6 +374,7 @@ async function muatDota() {
         '</div></div>';
     }).join('');
     list.dataset.loaded = 'dota2';
+    dotaCache = { html: list.innerHTML, meta: meta.textContent };
   } catch (err) {
     meta.textContent = '';
     list.innerHTML = errorHTML('Gagal memuat data Dota 2. Periksa koneksi internetmu.');
@@ -583,19 +614,19 @@ async function muatAnime(paksa) {
 }
 
 function fmtCountdown(ms) {
-  if (ms <= 0) return 'TAYANG!';
+  if (ms <= 0) return '🔴 TAYANG!';
   const s = Math.floor(ms / 1000);
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
   const d = Math.floor(h / 24);
   const hh = h % 24;
   const pad = (n) => String(n).padStart(2, '0');
-  return d > 0 ? d + 'd ' + pad(hh) + ':' + pad(m) + ':' + pad(ss)
-               : pad(hh) + ':' + pad(m) + ':' + pad(ss);
+  return '⏳ ' + (d > 0 ? d + 'd ' + pad(hh) + ':' + pad(m) + ':' + pad(ss)
+               : pad(hh) + ':' + pad(m) + ':' + pad(ss));
 }
 
 function tickCountdown() {
   document.querySelectorAll('[data-tayang]').forEach((el) => {
-    el.textContent = '⏳ ' + fmtCountdown(parseInt(el.dataset.tayang, 10) - Date.now());
+    el.textContent = fmtCountdown(parseInt(el.dataset.tayang, 10) - Date.now());
   });
 }
 setInterval(tickCountdown, 1000);
