@@ -118,6 +118,7 @@
   .match-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .team { flex: 1; font-weight: 800; font-size: 15px; }
   .team.right { text-align: right; }
+  .tlogo { width: 30px; height: 30px; object-fit: contain; flex: none; }
   .score {
     font-size: 22px; font-weight: 800; white-space: nowrap;
     background: linear-gradient(90deg, var(--acc1), var(--acc2));
@@ -310,21 +311,16 @@ $('#game-chips').addEventListener('click', (e) => {
 
 async function muatEsports(paksa) {
   const list = $('#esports-list');
-  const meta = $('#esports-meta');
   const game = tabState.game;
+  if (!paksa && list.dataset.loaded === game) return;
+  delete list.dataset.loaded;
+  if (game === 'lol') return muatLol();
+  if (game === 'mlbb') return muatMlbb();
+  if (game === 'cs2') return muatCs2();
+  return muatDota();
+}
 
-  if (game !== 'dota2') {
-    const nama = { lol: 'League of Legends', cs2: 'CS2', mlbb: 'Mobile Legends' }[game];
-    meta.textContent = '';
-    list.innerHTML =
-      '<div class="soon"><div class="big">🚧</div><b>Data ' + esc(nama) + ' segera hadir</b><br>' +
-      'Sumber data publiknya lagi disiapkan — yang sudah live: Dota 2.</div>';
-    return;
-  }
-
-  if (!paksa && list.dataset.loaded === '1') return;
-  list.innerHTML = skeletonHTML(5);
-  meta.textContent = 'Memuat dari OpenDota…';
+async function muatDota() {
 
   try {
     const data = await fetchJSON('https://api.opendota.com/api/proMatches');
@@ -343,12 +339,119 @@ async function muatEsports(paksa) {
         '<span>⏱️ ' + esc(fmtDurasi(m.duration)) + ' · ' + esc(waktuLalu(m.start_time * 1000)) + '</span>' +
         '</div></div>';
     }).join('');
-    list.dataset.loaded = '1';
+    list.dataset.loaded = 'dota2';
   } catch (err) {
     meta.textContent = '';
     list.innerHTML = errorHTML('Gagal memuat data Dota 2. Periksa koneksi internetmu.');
     delete list.dataset.loaded;
   }
+}
+
+/* ---- LoL via lolesports unofficial API (key publik milik client resmi) ---- */
+const LOL_KEY = '0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z';
+const LOL_LEAGUES = [
+  ['98767975604431411', 'Worlds'],
+  ['98767991310872058', 'LCK'],
+  ['98767991314006698', 'LPL'],
+  ['98767991302996019', 'LEC'],
+  ['113476371197627891', 'LCP']
+];
+
+async function muatLol() {
+  const list = $('#esports-list');
+  const meta = $('#esports-meta');
+  list.innerHTML = skeletonHTML(5);
+  meta.textContent = 'Memuat dari lolesports…';
+
+  try {
+    const now = Date.now();
+    const hasil = await Promise.all(LOL_LEAGUES.map(async ([id, nama]) => {
+      const res = await fetchJSON('https://esports-api.lolesports.com/persisted/gw/getSchedule?hl=en-US&leagueId=' + id, {
+        headers: { 'x-api-key': LOL_KEY }
+      });
+      const evs = (((res || {}).data || {}).schedule || {}).events || [];
+      evs.forEach((e) => { e._league = nama; });
+      return evs;
+    }));
+    const upcoming = hasil.flat()
+      .filter((e) => e.state === 'unstarted' && e.startTime && new Date(e.startTime).getTime() > now - 3600e3)
+      .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+      .slice(0, 15);
+    if (!upcoming.length) throw new Error('kosong');
+    meta.textContent = 'Sumber: lolesports · ' + upcoming.length + ' match terjadwal';
+    list.innerHTML = upcoming.map((e) => {
+      const teams = ((e.match || {}).teams || []);
+      const t1 = teams[0] || {}, t2 = teams[1] || {};
+      const tayang = new Date(e.startTime).getTime();
+      return '<div class="card"><div class="match-top">' +
+        '<div class="team">' + esc(t1.code || t1.name || 'TBD') + '</div>' +
+        '<div class="score">vs</div>' +
+        '<div class="team right">' + esc(t2.code || t2.name || 'TBD') + '</div>' +
+        '</div><div class="match-sub">' +
+        '<span class="league">🏟️ ' + esc(e._league) + (e.blockName ? ' · ' + esc(e.blockName) : '') + '</span>' +
+        '<span class="count" data-tayang="' + tayang + '">…</span>' +
+        '</div></div>';
+    }).join('');
+    list.dataset.loaded = 'lol';
+    tickCountdown();
+  } catch (err) {
+    meta.textContent = '';
+    list.innerHTML = errorHTML('Gagal memuat jadwal LoL. Coba lagi beberapa saat.');
+    delete list.dataset.loaded;
+  }
+}
+
+/* ---- MLBB via mlbbhub (MPL Indonesia) ---- */
+async function muatMlbb() {
+  const list = $('#esports-list');
+  const meta = $('#esports-meta');
+  list.innerHTML = skeletonHTML(5);
+  meta.textContent = 'Memuat dari mlbbhub…';
+
+  try {
+    const weeks = await fetchJSON('https://mpl.mlbbhub.com/api/v1/id/schedule');
+    const semua = [];
+    (weeks || []).forEach((w) => { ((w || {}).matches || []).forEach((m) => semua.push(m)); });
+    const upcoming = semua
+      .filter((m) => m.status === 'upcoming' && m.iso_datetime)
+      .sort((a, b) => new Date(a.iso_datetime) - new Date(b.iso_datetime))
+      .slice(0, 15);
+    if (!upcoming.length) throw new Error('kosong');
+    meta.textContent = 'Sumber: mlbbhub · MPL ID · ' + upcoming.length + ' match terjadwal';
+    list.innerHTML = upcoming.map((m) => {
+      const tayang = new Date(m.iso_datetime).getTime();
+      const tgl = new Date(m.iso_datetime).toLocaleString('id-ID', { timeZone: 'Asia/Makassar', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      return '<div class="card"><div class="match-top">' +
+        (m.team_a_logo ? '<img class="tlogo" src="' + esc(m.team_a_logo) + '" alt="" loading="lazy">' : '') +
+        '<div class="team">' + esc(m.team_a || '?') + '</div>' +
+        '<div class="score">vs</div>' +
+        '<div class="team right">' + esc(m.team_b || '?') + '</div>' +
+        (m.team_b_logo ? '<img class="tlogo" src="' + esc(m.team_b_logo) + '" alt="" loading="lazy">' : '') +
+        '</div><div class="match-sub">' +
+        '<span class="league">🏟️ MPL ID</span>' +
+        '<span>📅 ' + esc(tgl) + ' WITA</span>' +
+        '<span class="count" data-tayang="' + tayang + '">…</span>' +
+        '</div></div>';
+    }).join('');
+    list.dataset.loaded = 'mlbb';
+    tickCountdown();
+  } catch (err) {
+    meta.textContent = '';
+    list.innerHTML = errorHTML('Gagal memuat jadwal MLBB. Coba lagi beberapa saat.');
+    delete list.dataset.loaded;
+  }
+}
+
+/* ---- CS2: butuh API key rahasia (tidak bisa di browser publik) ---- */
+function muatCs2() {
+  const list = $('#esports-list');
+  const meta = $('#esports-meta');
+  meta.textContent = '';
+  list.innerHTML =
+    '<div class="soon"><div class="big">🔑</div><b>CS2 butuh API key gratis</b><br>' +
+    'Sumber datanya (PandaScore) minta key rahasia yang nggak aman ditempel di website publik.<br>' +
+    'Daftar gratis di pandascore.co, setup sekali di VPS — kabarin Vesper kalau key-nya sudah ada.</div>';
+  list.dataset.loaded = 'cs2';
 }
 
 /* ================= TAB 2: MANGA (via AniList — MangaDex tidak mengizinkan akses browser) ================= */
