@@ -446,16 +446,41 @@ async function muatMlbb() {
   }
 }
 
-/* ---- CS2: butuh API key rahasia (tidak bisa di browser publik) ---- */
-function muatCs2() {
+/* ---- CS2: via cron VPS (PandaScore, token rahasia tidak bisa di browser) ---- */
+async function muatCs2() {
   const list = $('#esports-list');
   const meta = $('#esports-meta');
-  meta.textContent = '';
-  list.innerHTML =
-    '<div class="soon"><div class="big">🔑</div><b>CS2 butuh API key gratis</b><br>' +
-    'Sumber datanya (PandaScore) minta key rahasia yang nggak aman ditempel di website publik.<br>' +
-    'Daftar gratis di pandascore.co, setup sekali di VPS — kabarin Vesper kalau key-nya sudah ada.</div>';
-  list.dataset.loaded = 'cs2';
+  list.innerHTML = skeletonHTML(5);
+  meta.textContent = 'Memuat data CS2…';
+
+  try {
+    const data = await fetchJSON('https://raw.githubusercontent.com/hansxf-ui/dashboard-3in1/main/data/cs2.json?cb=' + Date.now());
+    const matches = ((data || {}).matches || [])
+      .filter((m) => m.begin_at && new Date(m.begin_at).getTime() > Date.now() - 3600e3)
+      .slice(0, 15);
+    if (!matches.length) throw new Error('kosong');
+    const f = data.fetched_at ? new Date(data.fetched_at).toLocaleString('id-ID', { timeZone: 'Asia/Makassar', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '?';
+    meta.textContent = 'Sumber: PandaScore (via VPS) · data per ' + f + ' WITA';
+    list.innerHTML = matches.map((m) => {
+      const tayang = new Date(m.begin_at).getTime();
+      return '<div class="card"><div class="match-top">' +
+        '<div class="team">' + esc(m.t1 || 'TBD') + '</div>' +
+        '<div class="score">vs</div>' +
+        '<div class="team right">' + esc(m.t2 || 'TBD') + '</div>' +
+        '</div><div class="match-sub">' +
+        '<span class="league">🏟️ ' + esc(m.tournament || 'CS2') + (m.bo ? ' · BO' + esc(m.bo) : '') + '</span>' +
+        '<span class="count" data-tayang="' + tayang + '">…</span>' +
+        '</div></div>';
+    }).join('');
+    list.dataset.loaded = 'cs2';
+    tickCountdown();
+  } catch (err) {
+    meta.textContent = '';
+    list.innerHTML =
+      '<div class="soon"><div class="big">🔑</div><b>Data CS2 belum tersedia</b><br>' +
+      'Pipeline VPS belum jalan — setup sekali via Termux, kabarin Vesper kalau sudah.</div>';
+    delete list.dataset.loaded;
+  }
 }
 
 /* ================= TAB 2: MANGA (via AniList — MangaDex tidak mengizinkan akses browser) ================= */
