@@ -212,8 +212,7 @@
         <button class="chip" data-format="MANHUA">Manhua</button>
       </div>
     </div>
-    <div class="meta" style="color:var(--muted);font-size:12px;margin:-6px 2px 12px;">Sumber: AniList · urut yang paling baru diupdate</div>
-    <div id="manga-list" class="grid"></div>
+        <div id="manga-list" class="grid"></div>
   </section>
 
   <!-- ================= TAB 3: ANIME ================= -->
@@ -221,8 +220,7 @@
     <div class="section-head">
       <h2>Anime Segera Tayang</h2>
     </div>
-    <div class="meta" style="color:var(--muted);font-size:12px;margin:-6px 2px 12px;">Sumber: AniList · countdown update tiap detik</div>
-    <div class="chips" id="anime-chips">
+        <div class="chips" id="anime-chips">
       <button class="chip active" data-co="JP">Anime</button>
       <button class="chip" data-co="CN">Donghua</button>
       <button class="chip" data-co="ALL">Semua</button>
@@ -231,9 +229,7 @@
   </section>
 
   <footer>
-    Data live dari <a href="https://www.opendota.com" target="_blank" rel="noopener">OpenDota</a> dan
-    <a href="https://anilist.co" target="_blank" rel="noopener">AniList</a>.<br>
-    Dibuat dengan 🩶 + glassmorphism.
+    ⚡ DATA LIVE · AUTO-REFRESH
   </footer>
 </div>
 
@@ -359,7 +355,7 @@ async function muatDota() {
 
   try {
     const items = data.slice(0, 12);
-    meta.textContent = 'Sumber: OpenDota · ' + items.length + ' pertandingan pro terbaru';
+    meta.textContent = items.length + ' pertandingan pro terbaru';
     list.innerHTML = items.map((m) => {
       const rw = m.radiant_win;
       const t1 = esc(m.radiant_name || 'Radiant');
@@ -413,7 +409,7 @@ async function muatLol() {
       .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
       .slice(0, 15);
     if (!upcoming.length) throw new Error('kosong');
-    meta.textContent = 'Sumber: lolesports · ' + upcoming.length + ' match terjadwal';
+    meta.textContent = upcoming.length + ' match terjadwal';
     list.innerHTML = upcoming.map((e) => {
       const teams = ((e.match || {}).teams || []);
       const t1 = teams[0] || {}, t2 = teams[1] || {};
@@ -452,7 +448,7 @@ async function muatMlbb() {
       .sort((a, b) => new Date(a.iso_datetime) - new Date(b.iso_datetime))
       .slice(0, 15);
     if (!upcoming.length) throw new Error('kosong');
-    meta.textContent = 'Sumber: mlbbhub · MPL ID · ' + upcoming.length + ' match terjadwal';
+    meta.textContent = 'MPL ID · ' + upcoming.length + ' match terjadwal';
     list.innerHTML = upcoming.map((m) => {
       const tayang = new Date(m.iso_datetime).getTime();
       const tgl = new Date(m.iso_datetime).toLocaleString('id-ID', { timeZone: 'Asia/Makassar', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -491,7 +487,7 @@ async function muatCs2() {
       .slice(0, 15);
     if (!matches.length) throw new Error('kosong');
     const f = data.fetched_at ? new Date(data.fetched_at).toLocaleString('id-ID', { timeZone: 'Asia/Makassar', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '?';
-    meta.textContent = 'Sumber: PandaScore (via VPS) · data per ' + f + ' WITA';
+    meta.textContent = 'data per ' + f + ' WITA';
     list.innerHTML = matches.map((m) => {
       const tayang = new Date(m.begin_at).getTime();
       return '<div class="card"><div class="match-top">' +
