@@ -125,7 +125,10 @@
     -webkit-background-clip: text; background-clip: text; color: transparent;
     padding: 0 10px;
   }
-  .match-sub { display: flex; justify-content: space-between; margin-top: 10px; color: var(--muted); font-size: 12px; gap: 8px; flex-wrap: wrap; }
+  .match-sub { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; color: var(--muted); font-size: 12px; gap: 8px; }
+  .match-sub .minfo { min-width: 0; display: flex; gap: 4px 10px; flex-wrap: wrap; align-items: baseline; }
+  .match-sub .count { flex: none; }
+  .match-sub .mtime { flex: none; white-space: nowrap; }
   .league { color: var(--acc2); font-weight: 700; }
   .winner { color: #4ade80; }
 
@@ -338,9 +341,9 @@ async function muatDota() {
         '<div class="team">' + (rw ? '🏆 ' : '') + t1 + '</div>' +
         '<div class="score">' + (m.radiant_score || 0) + ' – ' + (m.dire_score || 0) + '</div>' +
         '<div class="team right">' + t2 + (rw ? '' : ' 🏆') + '</div>' +
-        '</div><div class="match-sub">' +
-        '<span class="league">🏟️ ' + esc(m.league_name || 'Turnamen') + '</span>' +
-        '<span>⏱️ ' + esc(fmtDurasi(m.duration)) + ' · ' + esc(waktuLalu(m.start_time * 1000)) + '</span>' +
+        '</div><div class="match-sub"><div class="minfo">' +
+        '<span class="league">🏟️ ' + esc(m.league_name || 'Turnamen') + '</span></div>' +
+        '<span class="mtime">⏱️ ' + esc(fmtDurasi(m.duration)) + ' · ' + esc(waktuLalu(m.start_time * 1000)) + '</span>' +
         '</div></div>';
     }).join('');
     list.dataset.loaded = 'dota2';
@@ -391,8 +394,8 @@ async function muatLol() {
         '<div class="team">' + esc(t1.code || t1.name || 'TBD') + '</div>' +
         '<div class="score">vs</div>' +
         '<div class="team right">' + esc(t2.code || t2.name || 'TBD') + '</div>' +
-        '</div><div class="match-sub">' +
-        '<span class="league">🏟️ ' + esc(e._league) + (e.blockName ? ' · ' + esc(e.blockName) : '') + '</span>' +
+        '</div><div class="match-sub"><div class="minfo">' +
+        '<span class="league">🏟️ ' + esc(e._league) + (e.blockName ? ' · ' + esc(e.blockName) : '') + '</span></div>' +
         '<span class="count" data-tayang="' + tayang + '">…</span>' +
         '</div></div>';
     }).join('');
@@ -431,9 +434,9 @@ async function muatMlbb() {
         '<div class="score">vs</div>' +
         '<div class="team right">' + esc(m.team_b || '?') + '</div>' +
         (m.team_b_logo ? '<img class="tlogo" src="' + esc(m.team_b_logo) + '" alt="" loading="lazy">' : '') +
-        '</div><div class="match-sub">' +
+        '</div><div class="match-sub"><div class="minfo">' +
         '<span class="league">🏟️ MPL ID</span>' +
-        '<span>📅 ' + esc(tgl) + ' WITA</span>' +
+        '<span>📅 ' + esc(tgl) + ' WITA</span></div>' +
         '<span class="count" data-tayang="' + tayang + '">…</span>' +
         '</div></div>';
     }).join('');
@@ -467,8 +470,8 @@ async function muatCs2() {
         '<div class="team">' + esc(m.t1 || 'TBD') + '</div>' +
         '<div class="score">vs</div>' +
         '<div class="team right">' + esc(m.t2 || 'TBD') + '</div>' +
-        '</div><div class="match-sub">' +
-        '<span class="league">🏟️ ' + esc(m.tournament || 'CS2') + (m.bo ? ' · BO' + esc(m.bo) : '') + '</span>' +
+        '</div><div class="match-sub"><div class="minfo">' +
+        '<span class="league">🏟️ ' + esc(m.tournament || 'CS2') + (m.bo ? ' · BO' + esc(m.bo) : '') + '</span></div>' +
         '<span class="count" data-tayang="' + tayang + '">…</span>' +
         '</div></div>';
     }).join('');
