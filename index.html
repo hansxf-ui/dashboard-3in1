@@ -357,7 +357,8 @@ $('#format-chips').addEventListener('click', (e) => {
   muatManga(false);
 });
 
-const MANGA_QUERY = (fmt) => 'query { Page(perPage: 20) { media(type: MANGA, sort: UPDATED_AT_DESC, status_in: [RELEASING], format: ' + fmt + ') { id title { romaji english native } coverImage { large } chapters genres updatedAt siteUrl } } }';
+const MANGA_FILTER = { MANGA: 'format: MANGA', MANHWA: 'countryOfOrigin: KR', MANHUA: 'countryOfOrigin: CN' };
+const MANGA_QUERY = (fmt) => 'query { Page(perPage: 20) { media(type: MANGA, sort: UPDATED_AT_DESC, status_in: [RELEASING], ' + (MANGA_FILTER[fmt] || 'format: MANGA') + ') { id title { romaji english native } coverImage { large } chapters genres updatedAt siteUrl } } }';
 
 async function muatManga(paksa) {
   const list = $('#manga-list');
