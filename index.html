@@ -592,7 +592,7 @@ function fmtCountdown(ms) {
   const d = Math.floor(h / 24);
   const hh = h % 24;
   const pad = (n) => String(n).padStart(2, '0');
-  return d > 0 ? d + 'h ' + pad(hh) + ':' + pad(m) + ':' + pad(ss)
+  return d > 0 ? d + 'd ' + pad(hh) + ':' + pad(m) + ':' + pad(ss)
                : pad(hh) + ':' + pad(m) + ':' + pad(ss);
 }
 
