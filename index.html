@@ -321,6 +321,10 @@ async function muatEsports(paksa) {
 }
 
 async function muatDota() {
+  const list = $('#esports-list');
+  const meta = $('#esports-meta');
+  list.innerHTML = skeletonHTML(5);
+  meta.textContent = 'Memuat dari OpenDota…';
 
   try {
     const data = await fetchJSON('https://api.opendota.com/api/proMatches');
