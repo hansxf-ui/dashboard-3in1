@@ -211,6 +211,11 @@
       <h2>Anime Segera Tayang</h2>
     </div>
     <div class="meta" style="color:var(--muted);font-size:12px;margin:-6px 2px 12px;">Sumber: AniList · countdown update tiap detik</div>
+    <div class="chips" id="anime-chips">
+      <button class="chip active" data-co="JP">Anime</button>
+      <button class="chip" data-co="CN">Donghua</button>
+      <button class="chip" data-co="ALL">Semua</button>
+    </div>
     <div id="anime-list" class="grid"></div>
   </section>
 
@@ -271,7 +276,7 @@ async function fetchJSON(url, opts) {
 }
 
 /* ---------- tab switching ---------- */
-const tabState = { aktif: 'esports', game: 'dota2', format: 'MANGA' };
+const tabState = { aktif: 'esports', game: 'dota2', format: 'MANGA', anime: 'JP' };
 
 document.querySelectorAll('nav.tabs button').forEach((b) => {
   b.addEventListener('click', () => {
@@ -357,6 +362,16 @@ $('#format-chips').addEventListener('click', (e) => {
   muatManga(false);
 });
 
+$('#anime-chips').addEventListener('click', (e) => {
+  const c = e.target.closest('.chip');
+  if (!c) return;
+  document.querySelectorAll('#anime-chips .chip').forEach((x) => x.classList.remove('active'));
+  c.classList.add('active');
+  tabState.anime = c.dataset.co;
+  delete $('#anime-list').dataset.loaded;
+  muatAnime(true);
+});
+
 const MANGA_FILTER = { MANGA: 'format: MANGA', MANHWA: 'countryOfOrigin: KR', MANHUA: 'countryOfOrigin: CN' };
 const MANGA_QUERY = (fmt) => 'query { Page(perPage: 20) { media(type: MANGA, sort: UPDATED_AT_DESC, status_in: [RELEASING], ' + (MANGA_FILTER[fmt] || 'format: MANGA') + ') { id title { romaji english native } coverImage { large } chapters genres updatedAt siteUrl } } }';
 
@@ -385,7 +400,7 @@ async function muatManga(paksa) {
       return '<div class="card"><div class="ani">' +
         (img ? '<img src="' + esc(img) + '" alt="" loading="lazy">' : '') +
         '<div class="info"><div class="t"><a href="' + esc(link) + '" target="_blank" rel="noopener" style="color:var(--txt);text-decoration:none">' + esc(ttl) + '</a></div>' +
-        '<div class="ep">📖 Chapter ' + esc(m.chapters == null ? '—' : m.chapters) + (gen ? ' · ' + esc(gen) : '') + '</div>' +
+        '<div class="ep">' + (m.chapters != null ? '📖 Chapter ' + esc(m.chapters) : '') + (gen ? (m.chapters != null ? ' · ' : '') + esc(gen) : '') + '</div>' +
         '<div class="manga-row"><span class="badge">' + esc(labelFormat) + '</span>' +
         '<span class="time">🕐 update ' + esc(waktuLalu(ts)) + '</span></div>' +
         '</div></div></div>';
@@ -399,7 +414,7 @@ async function muatManga(paksa) {
 }
 
 /* ================= TAB 3: ANIME ================= */
-const ANI_QUERY = 'query { Page(perPage: 25) { airingSchedules(notYetAired: true, sort: TIME) { timeUntilAiring episode media { title { romaji english } coverImage { large } } } } }';
+const ANI_QUERY = 'query { Page(perPage: 50) { airingSchedules(notYetAired: true, sort: TIME) { timeUntilAiring episode media { title { romaji english } coverImage { large } countryOfOrigin } } } }';
 
 async function muatAnime(paksa) {
   const list = $('#anime-list');
@@ -412,9 +427,10 @@ async function muatAnime(paksa) {
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({ query: ANI_QUERY })
     });
-    const items = ((res.data || {}).Page || {}).airingSchedules || [];
+    let items = ((res.data || {}).Page || {}).airingSchedules || [];
+    if (tabState.anime !== 'ALL') items = items.filter((s) => (((s.media || {}).countryOfOrigin) || '') === tabState.anime);
     if (!items.length) throw new Error('kosong');
-    list.innerHTML = items.map((s, i) => {
+    list.innerHTML = items.slice(0, 25).map((s, i) => {
       const md = s.media || {};
       const ttl = (md.title || {}).english || (md.title || {}).romaji || 'Tanpa judul';
       const img = (md.coverImage || {}).large || '';
