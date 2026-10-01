@@ -355,7 +355,7 @@ $('#format-chips').addEventListener('click', (e) => {
   muatManga(false);
 });
 
-const MANGA_QUERY = 'query ($format: MediaFormat) { Page(perPage: 20) { media(type: MANGA, sort: UPDATED_DESC, status_in: [RELEASING], format: $format) { id title { romaji english native } coverImage { large } chapters genres updatedAt siteUrl } } }';
+const MANGA_QUERY = 'query ($format: MediaFormat) { Page(perPage: 20) { media(type: MANGA, sort: UPDATED_AT_DESC, status_in: [RELEASING], format: $format) { id title { romaji english native } coverImage { large } chapters genres updatedAt siteUrl } } }';
 
 async function muatManga(paksa) {
   const list = $('#manga-list');
