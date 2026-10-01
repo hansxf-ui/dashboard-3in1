@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Esports · Manga · Anime</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg1: #070b16; --bg2: #0d1428; --bg3: #131a33;
+    --glass: rgba(255,255,255,.06);
+    --glass-brd: rgba(255,255,255,.13);
+    --txt: #eef1ff; --muted: #9aa3c7;
+    --acc1: #22d3ee; --acc2: #a78bfa; --acc3: #f472b6;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    background: linear-gradient(160deg, var(--bg1), var(--bg2) 55%, var(--bg3));
+    color: var(--txt); min-height: 100vh; overflow-x: hidden;
+  }
+  /* ===== animated background blobs ===== */
+  .blob { position: fixed; border-radius: 50%; filter: blur(90px); opacity: .35; z-index: 0; pointer-events: none; }
+  .b1 { width: 340px; height: 340px; background: #6d28d9; top: -80px; left: -80px; animation: drift1 18s ease-in-out infinite alternate; }
+  .b2 { width: 300px; height: 300px; background: #0e7490; bottom: -60px; right: -60px; animation: drift2 22s ease-in-out infinite alternate; }
+  .b3 { width: 220px; height: 220px; background: #be185d; top: 45%; left: 60%; animation: drift1 26s ease-in-out infinite alternate-reverse; }
+  @keyframes drift1 { from { transform: translate(0,0) scale(1); } to { transform: translate(60px,40px) scale(1.15); } }
+  @keyframes drift2 { from { transform: translate(0,0) scale(1.1); } to { transform: translate(-50px,-40px) scale(.95); } }
+
+  .wrap { position: relative; z-index: 1; max-width: 920px; margin: 0 auto; padding: 0 14px 60px; }
+  header.hero { text-align: center; padding: 34px 10px 18px; }
+  header.hero h1 {
+    font-size: clamp(26px, 6vw, 40px); font-weight: 800; letter-spacing: .5px;
+    background: linear-gradient(90deg, var(--acc1), var(--acc2), var(--acc3));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  header.hero p { color: var(--muted); margin-top: 6px; font-size: 14px; }
+
+  /* ===== tab nav ===== */
+  nav.tabs {
+    position: sticky; top: 10px; z-index: 50;
+    display: flex; gap: 8px; justify-content: center;
+    background: rgba(10,14,28,.55); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--glass-brd); border-radius: 20px;
+    padding: 8px; margin: 8px auto 20px; max-width: 560px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.35);
+  }
+  nav.tabs button {
+    flex: 1; border: 0; cursor: pointer; color: var(--muted);
+    background: transparent; border-radius: 14px; padding: 11px 6px;
+    font-size: 14px; font-weight: 700; transition: all .25s ease;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  nav.tabs button.active {
+    color: #fff; background: linear-gradient(135deg, rgba(34,211,238,.28), rgba(167,139,250,.28));
+    border: 1px solid rgba(255,255,255,.22);
+    box-shadow: 0 4px 18px rgba(34,211,238,.25);
+    transform: translateY(-1px);
+  }
+  nav.tabs button:active { transform: scale(.97); }
+
+  .tab { display: none; animation: fadeSlide .35s ease; }
+  .tab.active { display: block; }
+  @keyframes fadeSlide { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+  .section-head { display: flex; align-items: center; justify-content: space-between; margin: 4px 2px 14px; flex-wrap: wrap; gap: 10px; }
+  .section-head h2 { font-size: 19px; }
+  .section-head .meta { color: var(--muted); font-size: 12px; }
+
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    border: 1px solid var(--glass-brd); background: var(--glass); color: var(--muted);
+    border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600;
+    cursor: pointer; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    transition: all .2s ease;
+  }
+  .chip.active { color: #fff; border-color: rgba(34,211,238,.6); background: rgba(34,211,238,.15); box-shadow: 0 0 14px rgba(34,211,238,.25); }
+  .chip:active { transform: scale(.95); }
+
+  .grid { display: grid; gap: 12px; }
+  @media (min-width: 640px) { .grid.cols2 { grid-template-columns: 1fr 1fr; } }
+
+  .card {
+    background: var(--glass); border: 1px solid var(--glass-brd);
+    border-radius: 18px; padding: 16px;
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 8px 28px rgba(0,0,0,.3);
+    transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+  }
+  .card:hover { transform: translateY(-3px); border-color: rgba(167,139,250,.45); box-shadow: 0 14px 34px rgba(0,0,0,.42), 0 0 22px rgba(167,139,250,.15); }
+
+  /* ===== skeleton ===== */
+  .skel { border-radius: 18px; padding: 16px; border: 1px solid var(--glass-brd); background: var(--glass); }
+  .skel .ln { height: 14px; border-radius: 8px; margin: 8px 0;
+    background: linear-gradient(90deg, rgba(255,255,255,.06) 25%, rgba(255,255,255,.14) 50%, rgba(255,255,255,.06) 75%);
+    background-size: 200% 100%; animation: shimmer 1.3s infinite; }
+  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+  .err {
+    background: rgba(244,63,94,.1); border: 1px solid rgba(244,63,94,.4);
+    border-radius: 16px; padding: 18px; text-align: center; color: #fda4af; font-size: 14px;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .err button {
+    margin-top: 10px; border: 0; cursor: pointer; border-radius: 10px; padding: 9px 18px;
+    font-weight: 700; color: #fff; background: linear-gradient(135deg, #f43f5e, #a78bfa);
+  }
+  .err button:active { transform: scale(.96); }
+  .soon {
+    text-align: center; padding: 34px 18px; color: var(--muted); font-size: 14px;
+    background: var(--glass); border: 1px dashed var(--glass-brd); border-radius: 18px;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .soon .big { font-size: 34px; margin-bottom: 8px; }
+
+  /* ===== esports ===== */
+  .match-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .team { flex: 1; font-weight: 800; font-size: 15px; }
+  .team.right { text-align: right; }
+  .score {
+    font-size: 22px; font-weight: 800; white-space: nowrap;
+    background: linear-gradient(90deg, var(--acc1), var(--acc2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    padding: 0 10px;
+  }
+  .match-sub { display: flex; justify-content: space-between; margin-top: 10px; color: var(--muted); font-size: 12px; gap: 8px; flex-wrap: wrap; }
+  .league { color: var(--acc2); font-weight: 700; }
+  .winner { color: #4ade80; }
+
+  /* ===== manga ===== */
+  .manga-title { font-weight: 800; font-size: 15px; margin-bottom: 4px; }
+  .manga-title a { color: var(--txt); text-decoration: none; }
+  .manga-title a:hover { color: var(--acc1); }
+  .manga-ch { color: var(--muted); font-size: 13px; }
+  .manga-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px; }
+  .badge {
+    font-size: 11px; font-weight: 800; border-radius: 8px; padding: 4px 10px;
+    background: rgba(34,211,238,.15); border: 1px solid rgba(34,211,238,.4); color: var(--acc1);
+  }
+  .time { color: var(--muted); font-size: 12px; }
+
+  /* ===== anime ===== */
+  .ani { display: flex; gap: 14px; align-items: center; }
+  .ani img {
+    width: 74px; height: 104px; object-fit: cover; border-radius: 12px; flex-shrink: 0;
+    border: 1px solid var(--glass-brd); box-shadow: 0 6px 18px rgba(0,0,0,.4);
+  }
+  .ani .info { flex: 1; min-width: 0; }
+  .ani .t { font-weight: 800; font-size: 15px; margin-bottom: 4px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .ani .ep { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+  .count {
+    display: inline-block; font-variant-numeric: tabular-nums; font-weight: 800; font-size: 15px;
+    color: var(--acc1); background: rgba(34,211,238,.1); border: 1px solid rgba(34,211,238,.35);
+    padding: 6px 12px; border-radius: 10px; animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 rgba(34,211,238,.0); } 50% { box-shadow: 0 0 16px rgba(34,211,238,.45); } }
+
+  footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 34px; line-height: 1.7; }
+  footer a { color: var(--acc2); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+
+<div class="wrap">
+  <header class="hero">
+    <h1>🎮 Dashboard</h1>
+    <p>Esports · Manga · Anime — update otomatis, langsung dari sumbernya</p>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="esports" class="active">🏆 Esports</button>
+    <button data-tab="manga">📚 Manga</button>
+    <button data-tab="anime">✨ Anime</button>
+  </nav>
+
+  <!-- ================= TAB 1: ESPORTS ================= -->
+  <section id="tab-esports" class="tab active">
+    <div class="section-head">
+      <h2>Hasil &amp; Jadwal Esports</h2>
+      <div class="chips" id="game-chips">
+        <button class="chip active" data-game="dota2">Dota 2</button>
+        <button class="chip" data-game="lol">LoL</button>
+        <button class="chip" data-game="cs2">CS2</button>
+        <button class="chip" data-game="mlbb">MLBB</button>
+      </div>
+    </div>
+    <div class="meta" id="esports-meta" style="color:var(--muted);font-size:12px;margin:-6px 2px 12px;"></div>
+    <div id="esports-list" class="grid"></div>
+  </section>
+
+  <!-- ================= TAB 2: MANGA ================= -->
+  <section id="tab-manga" class="tab">
+    <div class="section-head">
+      <h2>Chapter Manga Terbaru</h2>
+      <div class="chips" id="lang-chips">
+        <button class="chip active" data-lang="en">EN</button>
+        <button class="chip" data-lang="id">ID</button>
+      </div>
+    </div>
+    <div class="meta" style="color:var(--muted);font-size:12px;margin:-6px 2px 12px;">Sumber: MangaDex</div>
+    <div id="manga-list" class="grid cols2"></div>
+  </section>
+
+  <!-- ================= TAB 3: ANIME ================= -->
+  <section id="tab-anime" class="tab">
+    <div class="section-head">
+      <h2>Anime Segera Tayang</h2>
+    </div>
+    <div class="meta" style="color:var(--muted);font-size:12px;margin:-6px 2px 12px;">Sumber: AniList · countdown update tiap detik</div>
+    <div id="anime-list" class="grid"></div>
+  </section>
+
+  <footer>
+    Data live dari <a href="https://www.opendota.com" target="_blank" rel="noopener">OpenDota</a>,
+    <a href="https://mangadex.org" target="_blank" rel="noopener">MangaDex</a>,
+    <a href="https://anilist.co" target="_blank" rel="noopener">AniList</a>.<br>
+    Dibuat dengan 🩶 + glassmorphism.
+  </footer>
+</div>
+
+<script>
+'use strict';
+/* ---------- helpers ---------- */
+const $ = (s) => document.querySelector(s);
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function waktuLalu(ts) {
+  const diff = Math.max(0, Date.now() - ts);
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'baru saja';
+  if (m < 60) return m + ' menit lalu';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + ' jam lalu';
+  const d = Math.floor(h / 24);
+  if (d < 30) return d + ' hari lalu';
+  return Math.floor(d / 30) + ' bulan lalu';
+}
+
+function fmtDurasi(sec) {
+  if (!sec) return '—';
+  const m = Math.floor(sec / 60);
+  return m + ' mnt';
+}
+
+function skeletonHTML(n) {
+  let h = '';
+  for (let i = 0; i < n; i++) {
+    h += '<div class="skel"><div class="ln" style="width:70%"></div><div class="ln" style="width:45%"></div><div class="ln" style="width:60%"></div></div>';
+  }
+  return h;
+}
+
+function errorHTML(pesan) {
+  return '<div class="err">⚠️ ' + esc(pesan) +
+    '<br><button onclick="muatUlangAktif()">🔄 Coba lagi</button></div>';
+}
+
+async function fetchJSON(url, opts) {
+  const r = await fetch(url, opts);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+/* ---------- tab switching ---------- */
+const tabState = { aktif: 'esports', game: 'dota2', lang: 'en' };
+
+document.querySelectorAll('nav.tabs button').forEach((b) => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('nav.tabs button').forEach((x) => x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+    $('#tab-' + b.dataset.tab).classList.add('active');
+    tabState.aktif = b.dataset.tab;
+    if (b.dataset.tab === 'esports') muatEsports(false);
+    if (b.dataset.tab === 'manga') muatManga(false);
+    if (b.dataset.tab === 'anime') muatAnime(false);
+  });
+});
+
+function muatUlangAktif() {
+  if (tabState.aktif === 'esports') muatEsports(true);
+  else if (tabState.aktif === 'manga') muatManga(true);
+  else muatAnime(true);
+}
+window.muatUlangAktif = muatUlangAktif;
+
+/* ================= TAB 1: ESPORTS ================= */
+$('#game-chips').addEventListener('click', (e) => {
+  const c = e.target.closest('.chip');
+  if (!c) return;
+  document.querySelectorAll('#game-chips .chip').forEach((x) => x.classList.remove('active'));
+  c.classList.add('active');
+  tabState.game = c.dataset.game;
+  muatEsports(false);
+});
+
+async function muatEsports(paksa) {
+  const list = $('#esports-list');
+  const meta = $('#esports-meta');
+  const game = tabState.game;
+
+  if (game !== 'dota2') {
+    const nama = { lol: 'League of Legends', cs2: 'CS2', mlbb: 'Mobile Legends' }[game];
+    meta.textContent = '';
+    list.innerHTML =
+      '<div class="soon"><div class="big">🚧</div><b>Data ' + esc(nama) + ' segera hadir</b><br>' +
+      'Sumber data publiknya lagi disiapkan — yang sudah live: Dota 2.</div>';
+    return;
+  }
+
+  if (!paksa && list.dataset.loaded === '1') return;
+  list.innerHTML = skeletonHTML(5);
+  meta.textContent = 'Memuat dari OpenDota…';
+
+  try {
+    const data = await fetchJSON('https://api.opendota.com/api/proMatches');
+    const items = data.slice(0, 12);
+    meta.textContent = 'Sumber: OpenDota · ' + items.length + ' pertandingan pro terbaru';
+    list.innerHTML = items.map((m) => {
+      const rw = m.radiant_win;
+      const t1 = esc(m.radiant_name || 'Radiant');
+      const t2 = esc(m.dire_name || 'Dire');
+      return '<div class="card"><div class="match-top">' +
+        '<div class="team">' + (rw ? '🏆 ' : '') + t1 + '</div>' +
+        '<div class="score">' + (m.radiant_score || 0) + ' – ' + (m.dire_score || 0) + '</div>' +
+        '<div class="team right">' + t2 + (rw ? '' : ' 🏆') + '</div>' +
+        '</div><div class="match-sub">' +
+        '<span class="league">🏟️ ' + esc(m.league_name || 'Turnamen') + '</span>' +
+        '<span>⏱️ ' + esc(fmtDurasi(m.duration)) + ' · ' + esc(waktuLalu(m.start_time * 1000)) + '</span>' +
+        '</div></div>';
+    }).join('');
+    list.dataset.loaded = '1';
+  } catch (err) {
+    meta.textContent = '';
+    list.innerHTML = errorHTML('Gagal memuat data Dota 2. Periksa koneksi internetmu.');
+    delete list.dataset.loaded;
+  }
+}
+
+/* ================= TAB 2: MANGA ================= */
+$('#lang-chips').addEventListener('click', (e) => {
+  const c = e.target.closest('.chip');
+  if (!c) return;
+  document.querySelectorAll('#lang-chips .chip').forEach((x) => x.classList.remove('active'));
+  c.classList.add('active');
+  tabState.lang = c.dataset.lang;
+  delete $('#manga-list').dataset.loaded;
+  muatManga(false);
+});
+
+function judulManga(rel) {
+  const mg = (rel || []).find((r) => r.type === 'manga');
+  if (!mg || !mg.attributes || !mg.attributes.title) return 'Judul tidak tersedia';
+  const t = mg.attributes.title;
+  return t.en || t['en'] || t[Object.keys(t)[0]] || 'Judul tidak tersedia';
+}
+
+async function muatManga(paksa) {
+  const list = $('#manga-list');
+  if (!paksa && list.dataset.loaded === '1') return;
+  list.innerHTML = skeletonHTML(6);
+
+  const lang = tabState.lang;
+  const url = 'https://api.mangadex.org/chapter?limit=20&translatedLanguage[]=' + lang +
+    '&order[readableAt]=desc&includes[]=manga&contentRating[]=safe&contentRating[]=suggestive';
+
+  try {
+    const res = await fetchJSON(url);
+    const items = (res.data || []).slice(0, 20);
+    if (!items.length) throw new Error('kosong');
+    list.innerHTML = items.map((ch) => {
+      const a = ch.attributes || {};
+      const no = a.chapter ? 'Ch. ' + esc(a.chapter) : 'Oneshot';
+      const jch = a.title ? ' — ' + esc(a.title) : '';
+      const link = 'https://mangadex.org/chapter/' + ch.id;
+      const ext = a.externalUrl ? ' 🔗' : '';
+      const ts = a.readableAt ? new Date(a.readableAt).getTime() : Date.now();
+      return '<div class="card"><div class="manga-title"><a href="' + link + '" target="_blank" rel="noopener">' +
+        esc(judulManga(ch.relationships)) + ext + '</a></div>' +
+        '<div class="manga-ch">' + no + jch + '</div>' +
+        '<div class="manga-row"><span class="badge">' + esc((a.translatedLanguage || lang).toUpperCase()) + '</span>' +
+        '<span class="time">🕐 ' + esc(waktuLalu(ts)) + '</span></div></div>';
+    }).join('');
+    list.dataset.loaded = '1';
+  } catch (err) {
+    list.innerHTML = errorHTML('Gagal memuat data MangaDex. Periksa koneksi internetmu.');
+    delete list.dataset.loaded;
+  }
+}
+
+/* ================= TAB 3: ANIME ================= */
+const ANI_QUERY = 'query { Page(perPage: 25) { airingSchedules(notYetAired: true, sort: TIME) { timeUntilAiring episode media { title { romaji english } coverImage { large } } } } }';
+
+async function muatAnime(paksa) {
+  const list = $('#anime-list');
+  if (!paksa && list.dataset.loaded === '1') return;
+  list.innerHTML = skeletonHTML(5);
+
+  try {
+    const res = await fetchJSON('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ query: ANI_QUERY })
+    });
+    const items = ((res.data || {}).Page || {}).airingSchedules || [];
+    if (!items.length) throw new Error('kosong');
+    list.innerHTML = items.map((s, i) => {
+      const md = s.media || {};
+      const ttl = (md.title || {}).english || (md.title || {}).romaji || 'Tanpa judul';
+      const img = (md.coverImage || {}).large || '';
+      const tayang = Date.now() + (s.timeUntilAiring || 0) * 1000;
+      return '<div class="card"><div class="ani">' +
+        (img ? '<img src="' + esc(img) + '" alt="" loading="lazy">' : '') +
+        '<div class="info"><div class="t">' + esc(ttl) + '</div>' +
+        '<div class="ep">Episode ' + esc(s.episode || '?') + '</div>' +
+        '<span class="count" data-tayang="' + tayang + '">…</span>' +
+        '</div></div></div>';
+    }).join('');
+    list.dataset.loaded = '1';
+    tickCountdown();
+  } catch (err) {
+    list.innerHTML = errorHTML('Gagal memuat data AniList. Coba lagi beberapa saat — kadang servernya membatasi akses otomatis.');
+    delete list.dataset.loaded;
+  }
+}
+
+function fmtCountdown(ms) {
+  if (ms <= 0) return 'TAYANG!';
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  const d = Math.floor(h / 24);
+  const hh = h % 24;
+  const pad = (n) => String(n).padStart(2, '0');
+  return d > 0 ? d + 'h ' + pad(hh) + ':' + pad(m) + ':' + pad(ss)
+               : pad(hh) + ':' + pad(m) + ':' + pad(ss);
+}
+
+function tickCountdown() {
+  document.querySelectorAll('[data-tayang]').forEach((el) => {
+    el.textContent = '⏳ ' + fmtCountdown(parseInt(el.dataset.tayang, 10) - Date.now());
+  });
+}
+setInterval(tickCountdown, 1000);
+
+/* ---------- auto-refresh ---------- */
+setInterval(() => { delete $('#esports-list').dataset.loaded; if (tabState.aktif === 'esports') muatEsports(true); }, 5 * 60 * 1000);
+setInterval(() => { delete $('#manga-list').dataset.loaded; if (tabState.aktif === 'manga') muatManga(true); }, 15 * 60 * 1000);
+setInterval(() => { delete $('#anime-list').dataset.loaded; if (tabState.aktif === 'anime') muatAnime(true); }, 30 * 60 * 1000);
+
+/* ---------- init ---------- */
+muatEsports(false);
+</script>
+</body>
+</html>
